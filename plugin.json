@@ -1,7 +1,7 @@
 {
   "id": "neodex.puissance4",
   "name": "Puissance 4",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "NDesumeur",
   "description": "Aligne 4 jetons avant l'autre : contre l'ordinateur (3 niveaux) ou à deux sur le même écran, en pixel art.",
   "icon": "icon.png",
