@@ -1,10 +1,40 @@
 # Puissance 4
 
-Aligne 4 jetons avant l'autre : contre l'ordinateur (3 niveaux) ou à deux sur le même écran, en pixel art.
+Le jeu de jetons à aligner sur une grille de 7 colonnes et 6 lignes : le premier qui aligne 4 jetons de sa couleur gagne. Joue contre l'ordinateur, à trois niveaux, ou à deux sur le même écran.
 
-Clic ou flèches + Entrée pour lâcher un jeton. L'ordinateur réfléchit plus loin à chaque niveau : Facile joue vite et se trompe, Difficile prévoit 6 coups.
+*English version: [README.en.md](README.en.md)*
 
-Ses données (records, réglages) sont rangées dans le dossier du plugin, que NeoDex sauvegarde (synchro cloud comprise).
+## Les règles
+
+- Chacun son tour, on lâche un jeton dans une colonne : il tombe tout en bas, sur la première case libre.
+- Le premier qui aligne **4 jetons** de sa couleur, à l'horizontale, à la verticale ou en diagonale, gagne ; les 4 jetons gagnants s'illuminent.
+- Si la grille est pleine sans alignement, c'est une égalité.
+- On commence chacun son tour d'une partie à l'autre.
+
+## Commandes
+
+- **Clic** sur une colonne pour y lâcher un jeton.
+- **← →** pour choisir la colonne, puis **Entrée**.
+- **Annuler** : reprend le dernier coup (contre l'ordinateur, ton coup et le sien).
+- **R** ou **clic** en fin de partie : rejouer.
+
+## Modes
+
+- **Contre l'ordi**, tu as les rouges :
+  - **Facile** : il prévoit 2 coups à l'avance et joue parfois au hasard ;
+  - **Normal** : il prévoit 4 coups ;
+  - **Difficile** : il prévoit 6 coups.
+
+  À tous les niveaux, il gagne quand il le peut et bloque tes alignements qu'il voit venir.
+- **À deux** : rouges contre jaunes sur le même écran.
+
+## Bilan
+
+Victoires, défaites et parties jouées pour chaque niveau, et le score des rouges contre les jaunes à deux.
+
+## Données et synchronisation
+
+Ton bilan et le mode choisi sont enregistrés par NeoDex, sauvegardés et synchronisés entre tes PC si la synchro est activée.
 
 ## Installer
 
