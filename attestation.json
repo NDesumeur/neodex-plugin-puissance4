@@ -1,9 +1,9 @@
 {
   "pluginId": "neodex.puissance4",
   "repo": "NDesumeur/neodex-plugin-puissance4",
-  "version": "1.0.1",
-  "sha256": "125bb9c95638a33f9d126fb26296725838cc6296986606d417436647b637279f",
-  "approvedAt": "2026-11-06T21:35:48.021Z",
+  "version": "1.0.2",
+  "sha256": "1d79efc757d3c877b869dcf77688162de213f4b123014747d770db7db6f59e4e",
+  "approvedAt": "2026-11-08T12:10:49.832Z",
   "neobase": ">=4.0.0",
-  "signature": "5FFHC8OCfKIl9mxijrgQYfdw20z/qm0LtCOJJrt+Vptbtqv6j+QULMYwvlA6z7oFP2TQ2qC/Ni34AZqTrWT+Cw=="
+  "signature": "KwKAKDYvG7/kWPPYtDvslMypdHXsXyI+0PR6dbsMuOtGTUTxKHV3Xeg+2lrllXjaKHInYITV0iBZ4LRAvoX/BQ=="
 }
