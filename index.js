@@ -7,18 +7,20 @@ const HTML = `<div class="appWrap wide">
       <div class="sysCard"><b>PARTIE</b>
         <div class="row"><button class="tab" id="p4M1">CONTRE L'ORDI</button><button class="tab" id="p4M2">À DEUX</button></div>
         <div class="row" id="p4Lv"><button class="tab" data-lv="1">FACILE</button><button class="tab" data-lv="2">NORMAL</button><button class="tab" data-lv="3">DIFFICILE</button></div>
-        <div class="row"><button class="btn main" id="p4New">NOUVELLE PARTIE</button><button class="btn" id="p4Undo">ANNULER</button></div></div>
+        <div class="row"><button class="btn main" id="p4New">NOUVELLE PARTIE</button><button class="btn" id="p4Undo">ANNULER</button><button class="btn" id="p4Fs">PLEIN ÉCRAN</button></div></div>
       <div class="sysCard"><b>BILAN</b><div class="gStats" id="p4Stats"></div></div>
     </div></div>
 </div>`;
 const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
-.gameBox{display:grid;place-items:center;padding:10px;background:#05010b;flex:2;min-width:320px;position:relative}
-.gameBox canvas{width:100%;image-rendering:pixelated;cursor:var(--cp,pointer);touch-action:none}
+.gameBox{display:grid;place-items:center;padding:10px;background:#05010b;flex:1 1 360px;min-width:min(100%,320px);position:relative}
+.gameBox:fullscreen{padding:0}
+.gameBox:fullscreen canvas{width:min(100vw,calc(100vh * 224 / 230))}
+.gameBox canvas{image-rendering:pixelated;cursor:var(--cp,pointer);touch-action:none}
 .gSide{display:flex;flex-direction:column;gap:14px;flex:1;min-width:250px;max-width:420px}
 .gSide .sysCard{display:flex;flex-direction:column}
 .gStats{display:grid;grid-template-columns:1fr auto;gap:4px 14px}
 .gStats b{text-align:right}
-.gameBox canvas{max-width:640px;aspect-ratio:224/230}`;
+.gameBox canvas{width:min(100%,max(280px,calc((100vh - 170px) * 224 / 230)));height:auto;aspect-ratio:224/230}`;
 /* ---------- l'habillage pixel art, dessiné à la main : police bitmap (accents compris), cadres, boutons, icônes ----------
    Tout est en pixels pleins, agrandis par 2 sans lissage : aucun dégradé, aucune ombre floue. */
 const PXK = (() => {
@@ -295,7 +297,7 @@ export default async function (ctx) {
   tile: ['................', '......:.........', '................', '................', '..+.............', '................', '...........:....', '................',
     '................', '....:...........', '................', '..............+.', '................', '........:.......', '................', '................'] },
   emblem: ['..kkkkkkkkkkk..', '.kbbbbbbbbbbbk.', 'kbbbbbbbbbbbbbk', 'kb.r.bb.g.bb.bk', 'kbrrrbbgggbb.bk', 'kb.r.bb.g.bb.bk', 'kbbbbbbbbbbbbbk', 'kb.g.bb.r.bb.bk', 'kbgggbbrrrbb.bk', 'kb.g.bb.r.bb.bk', 'kbbbbbbbbbbbbbk', '.kbbbbbbbbbbbk.', '..kkkkkkkkkkk..'],
-  icons: [[/^NOUVELLE/, 'play'], [/^ANNULER/, 'down'], [/^BILAN/, 'crown'], [/^PARTIE/, 'star']] });
+  icons: [[/^NOUVELLE/, 'play'], [/^ANNULER/, 'down'], [/^BILAN/, 'crown'], [/^PARTIE/, 'star'], [/^PLEIN/, 'full']] });
   const $ = id => view.querySelector('#' + id) || document.getElementById(id);
   const doc = async n => { try { return await folder.read(n); } catch { return null; } };
   const games = { best: {}, ...(await doc('games')) };
@@ -374,7 +376,7 @@ function p4Best(b, p, lv) {
 }
 function p4Drop(c) {
   if (!p4 || p4.over || p4.anim || p4.b[c].length >= P4.ROWS) return false;
-  const r = p4.b[c].length; p4.anim = {c, r, p: p4.turn, y: -1, v: 0}; p4Beep(220 + 40 * r, .05); return true;
+  const r = p4.b[c].length; p4.anim = {c, r, p: p4.turn, y: -1, v: 0, hits: 0}; p4Beep(220 + 40 * r, .05); return true;
 }
 function p4Land() {
   const {c, r, p} = p4.anim; p4.anim = null; p4.b[c].push(p); p4.hist.push(c); p4Beep(140, .08, 'square');
@@ -391,14 +393,20 @@ function p4Land() {
 function p4Cpu() { p4.think = true; const gen = p4.gen; setTimeout(() => { if (!p4 || p4.over || p4.gen !== gen) return; const c = p4Best(p4.b.map(x => x.slice()), 2, p4s.lv); p4.think = false; p4Drop(c); }, 380); }
 let p4ac = null;
 function p4Beep(f, d, type = 'sine') { try { p4ac ??= new AudioContext(); const o = p4ac.createOscillator(), g = p4ac.createGain(), t = p4ac.currentTime; o.type = type; o.frequency.value = f; g.gain.setValueAtTime(.08, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(p4ac.destination); o.start(t); o.stop(t + d + .02); } catch {} }
+function p4Toc(n, v) {  // le choc du jeton sur ceux du dessous : un coup sec et grave, plus faible à chaque rebond
+  try { p4ac ??= new AudioContext(); const t = p4ac.currentTime, o = p4ac.createOscillator(), g = p4ac.createGain(), vol = .1 * Math.min(1, v * 2) / n;
+    o.type = 'triangle'; o.frequency.setValueAtTime(260 - n * 40, t); o.frequency.exponentialRampToValueAtTime(90, t + .07); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + .09);
+    o.connect(g).connect(p4ac.destination); o.start(t); o.stop(t + .1); } catch {}
+}
 function p4Update() {
   p4.tick++;
-  if (p4.anim) { const a = p4.anim, target = P4.ROWS - 1 - a.r; a.v = Math.min(.5, a.v + .04); a.y += a.v; if (a.y >= target) p4Land(); }
+  if (p4.anim) { const a = p4.anim, target = P4.ROWS - 1 - a.r; a.v = Math.min(.5, a.v + .04); a.y += a.v;
+    if (a.y >= target) { a.y = target; if (a.hits < 2 && a.v > .12) { a.hits++; p4Toc(a.hits, a.v); a.v = -a.v * .32; } else p4Land(); } }
 }
 const P4_COL = {1: ['#ff4f6a', '#ffb3c0', '#a3203a', '#5c0f20'], 2: ['#ffd23f', '#fff1a8', '#c99a14', '#5a4206']};
 function p4Disc(g, x, y, p, glow) {  // un jeton 24 px dessiné à la main : bord sombre, face, reflet, creux central
   const [m, l, s, d] = P4_COL[p], R = ['....kkkk....', '..kkmmmmkk..', '.kmllmmmmmk.', '.kmlmmmmmsk.', 'kmlmmssmmmsk', 'kmmmsmmsmmsk', 'kmmmsmmsmmsk', 'kmmmmssmmmsk', '.kmmmmmmmsk.', '.kmmmmmmssk.', '..kkssssk...', '....kkkk....'];
-  const pal = {k: d, m, l, s}; R.forEach((row, j) => { for (let i = 0; i < 12; i++) { const c = pal[row[i]]; if (c) px(g, c, x + i * 2, y + j * 2, 2, 2); } });  // 12 × 12 pixels d'art, tracés en 2 × 2
+  const pal = {k: d, m, l, s}; x = Math.round(x); y = Math.round(y); R.forEach((row, j) => { for (let i = 0; i < 12; i++) { const c = pal[row[i]]; if (c) px(g, c, x + i * 2, y + j * 2, 2, 2); } });  // 12 × 12 pixels d'art, tracés en 2 × 2
   if (glow) { g.globalAlpha = .35 + .3 * Math.sin(p4.tick / 5); g.fillStyle = '#ffffff'; for (const [a, b, w, h] of [[8, 2, 8, 20], [2, 8, 20, 8], [4, 4, 16, 16]]) g.fillRect(x + a, y + b, w, h); g.globalAlpha = 1; }
 }
 function p4Draw() {
@@ -457,6 +465,8 @@ $('p4M1').onclick = () => { p4s.mode = 1; saveGames(); p4New(); };
 $('p4M2').onclick = () => { p4s.mode = 2; saveGames(); p4New(); };
 for (const b of $('p4Lv').children) b.onclick = () => { p4s.lv = +b.dataset.lv; saveGames(); p4New(); };
 $('p4New').onclick = () => p4New();
+$('p4Fs').onclick = () => { $('p4Fs').blur(); try { document.fullscreenElement ? document.exitFullscreen() : $('p4Canvas').parentElement.requestFullscreen?.().catch(() => {}); } catch {} };
+$('p4Canvas').__p4 = {st: () => p4};
 $('p4Undo').onclick = () => {  // contre l'ordi : on annule ton coup et le sien
   if (!p4 || p4.anim || p4.think) return;
   const n = p4s.mode === 1 ? 2 : 1; for (let i = 0; i < n && p4.hist.length; i++) { const c = p4.hist.pop(); p4.b[c].pop(); }

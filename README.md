@@ -18,6 +18,10 @@ Le jeu de jetons à aligner sur une grille de 7 colonnes et 6 lignes : le premie
 - **Annuler** : reprend le dernier coup (contre l'ordinateur, ton coup et le sien).
 - **R** ou **clic** en fin de partie : rejouer.
 
+## Plein écran
+
+Le bouton **Plein écran** agrandit la grille à tout l'écran (Échap pour en sortir). Hors plein écran, la grille prend toute la hauteur que laisse la fenêtre. Les jetons tombent, rebondissent deux fois sur ceux du dessous avec un petit « toc », puis se posent.
+
 ## Modes
 
 - **Contre l'ordi**, tu as les rouges :

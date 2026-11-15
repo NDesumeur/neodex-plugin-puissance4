@@ -18,6 +18,10 @@ The disc-dropping game on a grid of 7 columns and 6 rows: the first to line up 4
 - **Undo**: takes back the last move (against the computer, your move and its reply).
 - **R** or **click** at the end of a game: play again.
 
+## Full screen
+
+The **Full screen** button fills the whole screen with the grid (Escape to leave). Otherwise the grid takes all the height the window leaves. Discs fall, bounce twice on the ones below with a little « clack », then settle.
+
 ## Modes
 
 - **Against the computer**, you play red:
