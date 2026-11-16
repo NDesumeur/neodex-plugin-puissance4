@@ -1,7 +1,7 @@
 {
   "id": "neodex.puissance4",
   "name": "Puissance 4",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": "NDesumeur",
   "description": "Aligne 4 jetons de ta couleur avant l'autre sur une grille de 7 × 6, à l'horizontale, à la verticale ou en diagonale. Contre l'ordinateur, qui prévoit 2, 4 ou 6 coups selon le niveau, ou à deux sur le même écran. Clic ou flèches et Entrée, annulation du dernier coup, et bilan des victoires et défaites par niveau. Les jetons tombent et rebondissent avec un petit « toc », bouton plein écran et jeu à la taille de l'écran.",
   "icon": "icon.png",
