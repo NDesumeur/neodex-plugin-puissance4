@@ -66,7 +66,6 @@
  "PLEIN ÉCRAN": "FULL SCREEN",
  "PUISSANCE 4": "POWER 4",
  "Puissance 4": "Power 4",
- "Statistiques.": "Statistics.",
  "TOUR DES JAUNES": "YELLOW’S TURN",
  "TOUR DES ROUGES": "RED’S TURN",
  "Ua": "Ua",
@@ -110,5 +109,6 @@
  "Code de la partie :": "Game code:",
  "· donne-le à ton ami. En attente…": "· give it to your friend. Waiting…",
  "Impossible de créer la partie :": "Could not create the game:",
- "Impossible de rejoindre :": "Could not join:"
+ "Impossible de rejoindre :": "Could not join:",
+ "Rien n'est synchronisé : tes records restent sur cet appareil.": "Nothing is synced: your records stay on this device."
 }
