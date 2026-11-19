@@ -24,6 +24,8 @@ The **Full screen** button fills the whole screen with the grid (Escape to leave
 
 ## Modes
 
+- **Online**: play against a friend on another PC. One clicks **Create a game** and gives the 6-letter code shown; the other types it and clicks **Join**. Whoever creates the game plays red. Only the moves go through the NeoDex server ("Remote games" permission), and you take turns starting. At the end of a game, a click starts another one with the same friend.
+
 - **Against the computer**, you play red:
   - **Easy**: it looks 2 moves ahead and sometimes plays at random;
   - **Normal**: it looks 4 moves ahead;

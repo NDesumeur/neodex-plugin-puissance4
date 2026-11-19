@@ -5,7 +5,8 @@ const HTML = `<div class="appWrap wide">
   <div class="gMain"><div class="gameBox"><canvas id="p4Canvas" width="224" height="230"></canvas></div>
     <div class="gSide">
       <div class="sysCard"><b>PARTIE</b>
-        <div class="row"><button class="tab" id="p4M1">CONTRE L'ORDI</button><button class="tab" id="p4M2">À DEUX</button></div>
+        <div class="row"><button class="tab" id="p4M1">CONTRE L'ORDI</button><button class="tab" id="p4M2">À DEUX</button><button class="tab" id="p4M3">À DISTANCE</button></div>
+        <div id="p4Net" style="display:none"><div class="row"><button class="tab" id="p4Host">CRÉER UNE PARTIE</button></div><div class="row"><input class="f" id="p4Code" placeholder="CODE" maxlength="8" autocomplete="off" spellcheck="false" style="max-width:110px;text-transform:uppercase"><button class="tab" id="p4Join">REJOINDRE</button></div><div class="hint" id="p4NetInfo"></div></div>
         <div class="row" id="p4Lv"><button class="tab" data-lv="1">FACILE</button><button class="tab" data-lv="2">NORMAL</button><button class="tab" data-lv="3">DIFFICILE</button></div>
         <div class="row"><button class="btn main" id="p4New">NOUVELLE PARTIE</button><button class="btn" id="p4Undo">ANNULER</button><button class="btn" id="p4Fs">PLEIN ÉCRAN</button></div></div>
       <div class="sysCard"><b>BILAN</b><div class="gStats" id="p4Stats"></div></div>
@@ -333,9 +334,15 @@ const P4 = {W: 224, H: 230, C: 28, X0: 14, Y0: 34, COLS: 7, ROWS: 6};
 const P4_LV = {1: 'Facile', 2: 'Normal', 3: 'Difficile'};
 const p4s = gstore('p4', {mode: 1, lv: 2, stats: {}});
 let p4 = null;
+// à distance (mode 3) : deux PC, une partie par un code (ctx.room, serveur NeoDex). L'hôte joue les rouges (1), l'autre les jaunes (2) ;
+// l'hôte choisit qui commence et l'annonce, chaque coup part à l'autre ({t:'coup', c, n}) et n'est joué que si c'est bien son tour
+const net = {code: '', me: 0, opp: '', oppId: ''};
+const netOn = () => p4s.mode === 3 && !!net.opp;
+const netSay = t => { $('p4NetInfo').textContent = t; };
 const p4New = () => {  // le même objet d'une partie à l'autre (la boucle de jeu le garde) ; on commence chacun son tour
   p4 = Object.assign(p4 || {tick: 0, mode: 'play', raf: 0, hover: 3, nextFirst: 1}, {b: Array.from({length: P4.COLS}, () => []), hist: [], win: null, over: false, anim: null, think: false, gen: (p4?.gen || 0) + 1});
   p4.first = p4.turn = p4.nextFirst; p4.nextFirst = 3 - p4.first; p4Info(); if (p4s.mode === 1 && p4.turn === 2) p4Cpu();
+  if (p4s.mode === 3 && !net.opp) p4.over = true;  // à distance : rien à jouer tant que l'adversaire n'est pas là
 };
 const at = (b, c, r) => b[c][r] || 0;
 function p4Wins(b, c) {  // le jeton du haut de la colonne c fait-il un 4 ? -> les 4 cases ou null
@@ -374,8 +381,9 @@ function p4Best(b, p, lv) {
   if (lv === 1 && Math.random() < .3) bc = moves[Math.floor(Math.random() * moves.length)];  // Facile se trompe parfois
   return bc;
 }
-function p4Drop(c) {
+function p4Drop(c, fromNet) {
   if (!p4 || p4.over || p4.anim || p4.b[c].length >= P4.ROWS) return false;
+  if (p4s.mode === 3) { if (!netOn() || (p4.turn === net.me) === !!fromNet) return false; if (!fromNet) ctx.room.send({t: 'coup', c, n: p4.hist.length}).catch(e => toast(e.message, true)); }
   const r = p4.b[c].length; p4.anim = {c, r, p: p4.turn, y: -1, v: 0, hits: 0}; p4Beep(220 + 40 * r, .05); return true;
 }
 function p4Land() {
@@ -383,12 +391,13 @@ function p4Land() {
   const w = p4Wins(p4.b, c), full = p4.b.every(col => col.length >= P4.ROWS);
   if (w || full) {
     p4.over = true; p4.win = w ? {p, line: w} : {p: 0, line: []};
-    const key = p4s.mode === 2 ? 'deux' : P4_LV[p4s.lv], st = p4s.stats[key] ??= {v: 0, d: 0, n: 0};
-    if (p4s.mode === 1) { if (!w) st.n++; else if (p === 1) st.v++; else st.d++; } else { if (!w) st.n++; else if (p === 1) st.v++; else st.d++; }
+    const key = p4s.mode === 2 ? 'deux' : p4s.mode === 3 ? 'distance' : P4_LV[p4s.lv], st = p4s.stats[key] ??= {v: 0, d: 0, n: 0}, mine = p4s.mode === 3 ? net.me : 1;
+    if (!w) st.n++; else if (p === mine) st.v++; else st.d++;
     saveGames(); p4Beep(w ? 660 : 300, .25, 'triangle'); p4Info(); return;
   }
   p4.turn = 3 - p; p4Info();
   if (p4s.mode === 1 && p4.turn === 2) p4Cpu();
+  if (p4s.mode === 3) netTry();
 }
 function p4Cpu() { p4.think = true; const gen = p4.gen; setTimeout(() => { if (!p4 || p4.over || p4.gen !== gen) return; const c = p4Best(p4.b.map(x => x.slice()), 2, p4s.lv); p4.think = false; p4Drop(c); }, 380); }
 let p4ac = null;
@@ -414,7 +423,7 @@ function p4Draw() {
   g.fillStyle = '#070a24'; g.fillRect(0, 0, P4.W, P4.H);
   for (let i = 0; i < 40; i++) px(g, i % 3 ? '#121a4a' : '#1d2a6e', (i * 53) % P4.W, (i * 29) % 30);
   // le jeton qui attend au-dessus de la colonne
-  const human = !p4.over && !p4.anim && !p4.think && !(p4s.mode === 1 && p4.turn === 2);
+  const human = !p4.over && !p4.anim && !p4.think && !(p4s.mode === 1 && p4.turn === 2) && !(p4s.mode === 3 && p4.turn !== net.me);
   if (human) { const bob = Math.round(Math.sin(p4.tick / 8) * 2); p4Disc(g, X0 + p4.hover * C + 2, 6 + bob, p4.turn); }
   // les jetons posés, dessinés derrière la grille (on les voit par les trous)
   for (let c = 0; c < P4.COLS; c++) for (let r = 0; r < p4.b[c].length; r++) {
@@ -438,35 +447,75 @@ function p4Draw() {
   g.drawImage(grid, X0 - 4, Y0 - 4);
   if (human) { g.globalAlpha = .25; px(g, P4_COL[p4.turn][0], X0 + p4.hover * C, Y0 - 2, C, 2); g.globalAlpha = 1; }
   // bas : à qui le tour
-  const who = p4s.mode === 1 ? (p4.turn === 1 ? 'À TOI' : 'L’ORDI RÉFLÉCHIT…') : (p4.turn === 1 ? 'TOUR DES ROUGES' : 'TOUR DES JAUNES');
+  const who = p4s.mode === 3 ? (!net.opp ? 'EN ATTENTE D’UN ADVERSAIRE' : p4.turn === net.me ? 'À TOI' : net.me === 1 ? 'TOUR DES JAUNES' : 'TOUR DES ROUGES') : p4s.mode === 1 ? (p4.turn === 1 ? 'À TOI' : 'L’ORDI RÉFLÉCHIT…') : (p4.turn === 1 ? 'TOUR DES ROUGES' : 'TOUR DES JAUNES');
   if (!p4.over) pxFont(g, who, P4.W / 2, P4.H - 4, P4_COL[p4.turn][1], 8, 'center');
   else {
-    const t = !p4.win.p ? 'ÉGALITÉ' : p4s.mode === 1 ? (p4.win.p === 1 ? 'GAGNÉ !' : 'PERDU…') : (p4.win.p === 1 ? 'LES ROUGES GAGNENT' : 'LES JAUNES GAGNENT');
-    gameText(g, P4.W, [[t, p4.win.p ? P4_COL[p4.win.p][1] : '#ffffff', 12], ['Clic ou R : rejouer', '#8f9ad8']], 100);
+    const t = !p4.win ? (net.code ? 'EN ATTENTE…' : 'CRÉE OU REJOINS UNE PARTIE') : !p4.win.p ? 'ÉGALITÉ' : p4s.mode === 3 ? (p4.win.p === net.me ? 'GAGNÉ !' : 'PERDU…') : p4s.mode === 1 ? (p4.win.p === 1 ? 'GAGNÉ !' : 'PERDU…') : (p4.win.p === 1 ? 'LES ROUGES GAGNENT' : 'LES JAUNES GAGNENT');
+    gameText(g, P4.W, [[t, p4.win?.p ? P4_COL[p4.win.p][1] : '#ffffff', 12], [p4.win ? (p4s.mode === 3 && net.me === 2 ? 'Clic : redemander une partie' : 'Clic ou R : rejouer') : net.opp ? '' : 'Code à droite', '#8f9ad8']], 100);
   }
 }
 function p4Info() {
-  $('p4M1').classList.toggle('on', p4s.mode === 1); $('p4M2').classList.toggle('on', p4s.mode === 2); $('p4Lv').style.display = p4s.mode === 1 ? '' : 'none';
+  $('p4M1').classList.toggle('on', p4s.mode === 1); $('p4M2').classList.toggle('on', p4s.mode === 2); $('p4M3').classList.toggle('on', p4s.mode === 3); $('p4Lv').style.display = p4s.mode === 1 ? '' : 'none';
+  $('p4Net').style.display = p4s.mode === 3 ? '' : 'none'; $('p4Undo').style.display = p4s.mode === 3 ? 'none' : '';
   for (const b of $('p4Lv').children) b.classList.toggle('on', +b.dataset.lv === p4s.lv);
-  const rows = []; for (const k of [...Object.values(P4_LV), 'deux']) { const s = p4s.stats[k]; if (!s) continue; rows.push(el('span', '', k === 'deux' ? 'À deux (rouges / jaunes)' : 'Contre ' + k), el('b', '', k === 'deux' ? `${s.v} / ${s.d} · ${s.n} nuls` : `${s.v} V · ${s.d} D · ${s.n} N`)); }
+  const rows = []; for (const k of [...Object.values(P4_LV), 'deux', 'distance']) { const s = p4s.stats[k]; if (!s) continue; rows.push(el('span', '', k === 'deux' ? 'À deux (rouges / jaunes)' : k === 'distance' ? 'À distance' : 'Contre ' + k), el('b', '', k === 'deux' ? `${s.v} / ${s.d} · ${s.n} nuls` : `${s.v} V · ${s.d} D · ${s.n} N`)); }
   $('p4Stats').replaceChildren(...(rows.length ? rows : [el('span', 'hint', 'Aucune partie pour l’instant.')]));
 }
 const p4Col = e => { const r = $('p4Canvas').getBoundingClientRect(); return Math.max(0, Math.min(6, Math.floor(((e.clientX - r.left) / r.width * P4.W - P4.X0) / P4.C))); };
 $('p4Canvas').onpointermove = e => { if (p4) p4.hover = p4Col(e); };
-$('p4Canvas').onpointerdown = e => { if (!p4) return; if (p4.over) return p4New(); if (p4.think || (p4s.mode === 1 && p4.turn === 2)) return; p4.hover = p4Col(e); p4Drop(p4.hover); };
+$('p4Canvas').onpointerdown = e => { if (!p4) return; if (p4.over) return p4s.mode === 3 ? netAgain() : p4New(); if (p4.think || (p4s.mode === 1 && p4.turn === 2)) return; p4.hover = p4Col(e); p4Drop(p4.hover); };
 document.addEventListener('keydown', e => {
   if (!view.classList.contains('on') || !p4 || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
   if (e.key === 'ArrowLeft') p4.hover = Math.max(0, p4.hover - 1);
   else if (e.key === 'ArrowRight') p4.hover = Math.min(6, p4.hover + 1);
-  else if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); if (p4.over) p4New(); else if (!p4.think && !(p4s.mode === 1 && p4.turn === 2)) p4Drop(p4.hover); }
-  else if (e.key.toLowerCase() === 'r') p4New();
+  else if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); if (p4.over) { if (p4s.mode === 3) netAgain(); else p4New(); } else if (!p4.think && !(p4s.mode === 1 && p4.turn === 2)) p4Drop(p4.hover); }
+  else if (e.key.toLowerCase() === 'r') { if (p4s.mode === 3) netAgain(); else p4New(); }
 });
-$('p4M1').onclick = () => { p4s.mode = 1; saveGames(); p4New(); };
-$('p4M2').onclick = () => { p4s.mode = 2; saveGames(); p4New(); };
+const netLeave = () => { if (net.code) ctx.room.leave().catch(() => {}); Object.assign(net, {code: '', me: 0, opp: '', oppId: ''}); };
+$('p4M1').onclick = () => { netLeave(); p4s.mode = 1; saveGames(); p4New(); };
+$('p4M2').onclick = () => { netLeave(); p4s.mode = 2; saveGames(); p4New(); };
+$('p4M3').onclick = () => { p4s.mode = 3; saveGames(); p4New(); netSay(net.code ? '' : 'Crée une partie et donne son code à ton ami, ou tape le sien.'); };
+// une nouvelle partie à distance : l'hôte choisit qui commence (chacun son tour) et le dit à l'autre ; l'invité demande à l'hôte
+// le coup de l'autre : joué dès que le jeton précédent est posé (il peut arriver pendant sa chute)
+function netTry() { const m = net.pending; if (!m || !p4 || p4.anim || p4.turn === net.me) return; net.pending = null; if (m.n === p4.hist.length) p4Drop(m.c, true); }
+function netStart(first) { net.pending = null; p4.nextFirst = first; p4New(); }
+function netAgain() { if (!netOn()) return; if (net.me === 1) { const f = p4.nextFirst; ctx.room.send({t: 'start', first: f}).catch(() => {}); netStart(f); } else ctx.room.send({t: 'rejouer'}).catch(() => {}); }
+ctx.room?.on(ev => {
+  if (p4s.mode !== 3 || !net.code) return;
+  if (ev.t === 'arrive') {
+    if (net.me !== 1) return;
+    if (net.opp) return void ctx.room.send({t: 'pleine'}, ev.id).catch(() => {});  // un troisième : la partie a déjà deux joueurs
+    net.opp = ev.name || 'Adversaire'; net.oppId = ev.id; netSay('Contre ' + net.opp + ' · code ' + net.code); sfx?.('notify');
+    ctx.room.send({t: 'start', first: 1}).catch(() => {}); netStart(1);
+  } else if (ev.t === 'part' && ev.id === net.oppId || ev.t === 'fin') {
+    netSay(ev.t === 'fin' ? 'Connexion perdue avec le serveur de parties.' : net.opp + ' a quitté la partie.' + (net.me === 1 ? ' Le code reste valable : ton ami peut revenir.' : ''));
+    net.opp = ''; net.oppId = ''; if (ev.t === 'fin') net.code = ''; if (p4) { p4.over = true; p4.win = null; }
+  } else if (ev.t === 'msg') {
+    const m = ev.data || {};
+    if (net.me === 2 && !net.oppId) { net.oppId = ev.from; }
+    if (ev.from !== net.oppId) return;
+    if (m.t === 'start' && net.me === 2) { netStart(m.first === 2 ? 2 : 1); netSay('Contre ' + net.opp + ' · code ' + net.code); }
+    else if (m.t === 'rejouer' && net.me === 1 && p4.over) netAgain();
+    else if (m.t === 'pleine') { netSay('Cette partie a déjà deux joueurs.'); netLeave(); }
+    else if (m.t === 'coup' && Number.isInteger(m.c) && m.c >= 0 && m.c < 7) { net.pending = m; netTry(); }
+  }
+});
+$('p4Host').onclick = async () => {
+  try { netLeave(); const r = await ctx.room.create('les rouges'); Object.assign(net, {code: r.code, me: 1}); netSay('Code de la partie : ' + r.code + ' · donne-le à ton ami. En attente…'); p4New(); }
+  catch (e) { netSay('Impossible de créer la partie : ' + e.message); }
+};
+$('p4Join').onclick = async () => {
+  try {
+    netLeave(); const r = await ctx.room.join($('p4Code').value, 'les jaunes'), host = r.joueurs.find(j => j.host);
+    if (!host || r.joueurs.length > 1) { await ctx.room.leave(); return netSay(host ? 'Cette partie a déjà deux joueurs.' : 'Aucune partie avec ce code.'); }
+    Object.assign(net, {code: r.code, me: 2, opp: host.name || 'Adversaire', oppId: host.id}); netSay('Connecté · la partie commence…');
+  } catch (e) { netSay('Impossible de rejoindre : ' + e.message); }
+};
+$('p4Code').onkeydown = e => { if (e.key === 'Enter') $('p4Join').click(); };
 for (const b of $('p4Lv').children) b.onclick = () => { p4s.lv = +b.dataset.lv; saveGames(); p4New(); };
 $('p4New').onclick = () => p4New();
 $('p4Fs').onclick = () => { $('p4Fs').blur(); try { document.fullscreenElement ? document.exitFullscreen() : $('p4Canvas').parentElement.requestFullscreen?.().catch(() => {}); } catch {} };
-$('p4Canvas').__p4 = {st: () => p4};
+$('p4Canvas').__p4 = {st: () => p4, net: () => net};
 $('p4Undo').onclick = () => {  // contre l'ordi : on annule ton coup et le sien
   if (!p4 || p4.anim || p4.think) return;
   const n = p4s.mode === 1 ? 2 : 1; for (let i = 0; i < n && p4.hist.length; i++) { const c = p4.hist.pop(); p4.b[c].pop(); }

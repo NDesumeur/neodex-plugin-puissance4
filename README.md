@@ -24,6 +24,8 @@ Le bouton **Plein écran** agrandit la grille à tout l'écran (Échap pour en s
 
 ## Modes
 
+- **À distance** : joue contre un ami sur un autre PC. L'un clique sur **Créer une partie** et donne le code de 6 lettres affiché ; l'autre le tape et clique sur **Rejoindre**. Celui qui crée a les rouges. Seuls les coups passent par le serveur de NeoDex (autorisation « Parties à distance »), et on commence chacun son tour. En fin de partie, un clic relance une partie avec le même ami.
+
 - **Contre l'ordi**, tu as les rouges :
   - **Facile** : il prévoit 2 coups à l'avance et joue parfois au hasard ;
   - **Normal** : il prévoit 4 coups ;
