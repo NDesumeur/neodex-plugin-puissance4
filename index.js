@@ -306,6 +306,9 @@ export default async function (ctx) {
   const saveGames = () => { clearTimeout(gamesTimer); gamesTimer = setTimeout(() => { gamesTimer = null; folder.write('games', games).catch(() => {}); }, 500); };
   const best = (k, v) => { const b = games.best[k]; if (b == null || v > b) { games.best[k] = v; saveGames(); return true; } return false; };
   const gstore = (k, init) => (games[k] ??= init);
+  // les trophées de NeoDex (3.4.8 et plus) : succès et records déclarés dans plugin.json ; sur un NeoDex plus ancien, rien ne se passe
+  const trophy = id => { ctx.games?.unlock(id).catch(() => {}); };
+  const trophyRecord = (id, v) => { if (v != null && Number.isFinite(+v)) ctx.games?.record(id, +v).catch(() => {}); };
 function gameLoop(st, appKey, update, draw) {
   cancelAnimationFrame(st.raf);
   const STEP = 1000 / 60; let acc = 0, last = performance.now();
@@ -393,7 +396,8 @@ function p4Land() {
     p4.over = true; p4.win = w ? {p, line: w} : {p: 0, line: []};
     const key = p4s.mode === 2 ? 'deux' : p4s.mode === 3 ? 'distance' : P4_LV[p4s.lv], st = p4s.stats[key] ??= {v: 0, d: 0, n: 0}, mine = p4s.mode === 3 ? net.me : 1;
     if (!w) st.n++; else if (p === mine) st.v++; else st.d++;
-    saveGames(); p4Beep(w ? 660 : 300, .25, 'triangle'); p4Info(); return;
+    if (w && p === mine && p4s.mode !== 2) { const n = p4.b.flat().filter(x => x === p).length; if (!(p4s.fast <= n)) p4s.fast = n; }
+    saveGames(); p4Beep(w ? 660 : 300, .25, 'triangle'); p4Info(); p4Trophies(); return;
   }
   p4.turn = 3 - p; p4Info();
   if (p4s.mode === 1 && p4.turn === 2) p4Cpu();
@@ -530,8 +534,17 @@ $('p4Undo').onclick = () => {  // contre l'ordi : on annule ton coup et le sien
   b = B(); b[0].push(1); b[1].push(1); b[2].push(1); b[6].push(2); const block = p4Best(b, 2, 2) === 3;
   console.assert(h && v && dg && take && block, 'puissance 4', {h, v, dg, take, block});
 }
+// les trophées, tirés des statistiques et des records gardés (aussi à l'ouverture : ce qui a été fait avant compte)
+function p4Trophies() {
+  const s = p4s.stats, v = k => s[k]?.v || 0, cpu = v('Facile') + v('Normal') + v('Difficile');
+  trophyRecord('victoires', cpu || null); trophyRecord('rapide', p4s.fast);
+  if (v('Facile')) trophy('facile'); if (v('Normal')) trophy('normal'); if (v('Difficile')) trophy('difficile');
+  if (cpu >= 10) trophy('dix'); if (cpu >= 50) trophy('cinquante'); if (p4s.fast <= 5) trophy('eclair');
+  if (v('distance')) trophy('net'); if (s.deux && s.deux.v + s.deux.d + s.deux.n) trophy('duo');
+  if (Object.values(s).some(x => x.n)) trophy('nul');
+}
 ctx.onOpen(() => {
   if (!p4) { p4New(); p4.g = $('p4Canvas').getContext('2d'); p4.g.imageSmoothingEnabled = false; }
-  gameLoop(p4, 'p4', p4Update, p4Draw); p4Info();
+  gameLoop(p4, 'p4', p4Update, p4Draw); p4Info(); p4Trophies();
 });
 }

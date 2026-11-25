@@ -1,7 +1,7 @@
 {
   "id": "neodex.puissance4",
   "name": "Puissance 4",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "author": "NDesumeur",
   "description": "Aligne 4 jetons de ta couleur avant l'autre sur une grille de 7 × 6, à l'horizontale, à la verticale ou en diagonale. Contre l'ordinateur, qui prévoit 2, 4 ou 6 coups selon le niveau, à deux sur le même écran, ou à distance avec un ami grâce à un code de partie. Clic ou flèches et Entrée, annulation du dernier coup, et bilan des victoires et défaites par niveau. Les jetons tombent et rebondissent avec un petit « toc », bouton plein écran et jeu à la taille de l'écran.",
   "icon": "icon.png",
@@ -23,5 +23,68 @@
   "permissions": [
     "storage",
     "rooms"
+  ],
+  "succes": [
+    {
+      "id": "facile",
+      "nom": "Quatre à la suite",
+      "texte": "Battre l'ordinateur en Facile"
+    },
+    {
+      "id": "normal",
+      "nom": "Bien aligné",
+      "texte": "Battre l'ordinateur en Normal"
+    },
+    {
+      "id": "difficile",
+      "nom": "Imbattable",
+      "texte": "Battre l'ordinateur en Difficile"
+    },
+    {
+      "id": "dix",
+      "nom": "Habitué de la grille",
+      "texte": "Gagner 10 parties contre l'ordinateur"
+    },
+    {
+      "id": "cinquante",
+      "nom": "Colonne vertébrale",
+      "texte": "Gagner 50 parties contre l'ordinateur"
+    },
+    {
+      "id": "eclair",
+      "nom": "Victoire éclair",
+      "texte": "Gagner en posant 5 jetons au plus"
+    },
+    {
+      "id": "net",
+      "nom": "Entre amis",
+      "texte": "Gagner une partie en ligne"
+    },
+    {
+      "id": "duo",
+      "nom": "Face à face",
+      "texte": "Jouer une partie à deux sur le même écran"
+    },
+    {
+      "id": "nul",
+      "nom": "Grille pleine",
+      "texte": "Finir une partie sur un match nul",
+      "cache": true
+    }
+  ],
+  "records": [
+    {
+      "id": "victoires",
+      "nom": "Victoires contre l'ordinateur",
+      "sens": "haut",
+      "format": "nombre"
+    },
+    {
+      "id": "rapide",
+      "nom": "Victoire la plus rapide",
+      "sens": "bas",
+      "format": "nombre",
+      "unite": "jetons"
+    }
   ]
 }
